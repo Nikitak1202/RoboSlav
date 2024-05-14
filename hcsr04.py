@@ -1,44 +1,39 @@
-#1 sensor
-import RPi.GPIO as GPIO
-import time
+#!/usr/bin/env python
+import RPi.GPIO as GPIO  
+import time  
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setwarnings(False)
 
-TRIG = 23
-ECHO = 24
-print('Distance measurement in progress')
+# Функция измерения расстояния
+def ReadUS(TRIG, ECHO):  
+    # Отправляем короткий импульс на пин TRIG для запуска измерения
+    GPIO.output(TRIG, True)  
+    time.sleep(0.00001)  
+    GPIO.output(TRIG, False)  
 
-GPIO.setup(TRIG,GPIO.OUT)
-GPIO.setup(ECHO, GPIO.IN)
-GPIO.output(TRIG,False)
-print('Waiting for sensor to settle')
-time.sleep(2)
+    # Запускаем таймер для измерения времени прохождения сигнала до приемника
+    while GPIO.input(ECHO) == 0:  
+        pulse_start = time.time()  
 
-GPIO.output(TRIG, True)
-time.sleep(0.00001)
-GPIO.output(TRIG,False)
+    # Как только сигнал придет, останавливаем таймер
+    while GPIO.input(ECHO) == 1:  
+        pulse_end = time.time()  
 
-while GPIO.input(ECHO)==0:
-    pulse_start = time.time()
+    # Вычисляем длительность импульса
+    pulse_duration = pulse_end - pulse_start  
 
-while GPIO.input(ECHO)==1:
-    pulse_end = time.time()
-    
-pulse_duration = pulse_end - pulse_start
-distance = pulse_duration * 17150
-distance = round(distance,2)
-print('Distance: ', distance, 'cm')
+    # Рассчитываем расстояние на основе времени прохождения звукового сигнала
+    distance = pulse_duration * 17150  # Множим на скорость звука в см/с
+    distance = round(distance, 2)  
 
-#4 sensor
-import RPi.GPIO as GPIO
-import time
+    return distance  # Возвращаем расстояние в см
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setwarnings(False)
+# Тест
+GPIO.setmode(GPIO.BCM)  
+GPIO.setwarnings(False)  
 
-TRIG = 23
-ECHO = 12
+# Определение пинов для каждого датчика
+TRIG0 = 23
+ECHO0 = 12
 
 TRIG1 = 24
 ECHO1 = 16
@@ -46,93 +41,37 @@ ECHO1 = 16
 TRIG2 = 25
 ECHO2 = 20
 
-TRIG3 = 08
+TRIG3 = 8
 ECHO3 = 21
 
-print('Distance measurement in progress')
+# Настройка пинов GPIO как входов и выходов
+GPIO.setup(TRIG0, GPIO.OUT)
+GPIO.setup(ECHO0, GPIO.IN)
 
-GPIO.setup(TRIG,GPIO.OUT)
-GPIO.setup(ECHO, GPIO.IN)
-
-GPIO.setup(TRIG1,GPIO.OUT)
+GPIO.setup(TRIG1, GPIO.OUT)
 GPIO.setup(ECHO1, GPIO.IN)
 
-GPIO.setup(TRIG2,GPIO.OUT)
+GPIO.setup(TRIG2, GPIO.OUT)
 GPIO.setup(ECHO2, GPIO.IN)
 
-GPIO.setup(TRIG3,GPIO.OUT)
+GPIO.setup(TRIG3, GPIO.OUT)
 GPIO.setup(ECHO3, GPIO.IN)
 
-GPIO.output(TRIG,False)
-GPIO.output(TRIG1,False)
-GPIO.output(TRIG2,False)
-GPIO.output(TRIG3,False)
+# Установка всех пинов TRIG в низкий уровень
+GPIO.output(TRIG0, False)
+GPIO.output(TRIG1, False)
+GPIO.output(TRIG2, False)
+GPIO.output(TRIG3, False)
 
-print('Waiting for sensor 1 to send a signal')
-time.sleep(2)
+# Измерение расстояния для каждого датчика
+distance_1 = ReadUS(TRIG0, ECHO0)
+print('Distance from sensor 1:', distance_1, 'cm')
 
-GPIO.output(TRIG, True)
-time.sleep(0.00001)
-GPIO.output(TRIG,False)
+distance_2 = ReadUS(TRIG1, ECHO1)
+print('Distance from sensor 2:', distance_2, 'cm')
 
-while GPIO.input(ECHO)==0:
-    pulse_start = time.time()
+distance_3 = ReadUS(TRIG2, ECHO2)
+print('Distance from sensor 3:', distance_3, 'cm')
 
-while GPIO.input(ECHO)==1:
-    pulse_end = time.time()
-    
-pulse_duration = pulse_end - pulse_start
-distance = pulse_duration * 17150
-distance = round(distance,2)
-print('Distance: ', distance, 'cm')
-print('Waiting for sensor 2 to send signal')
-time.sleep(2)
-
-GPIO.output(TRIG1, True)
-time.sleep(0.00001)
-GPIO.output(TRIG1,False)
-
-while GPIO.input(ECHO1)==0:
-    pulse_start = time.time()
-
-while GPIO.input(ECHO1)==1:
-    pulse_end = time.time()
-    
-pulse_duration = pulse_end - pulse_start
-distance = pulse_duration * 17150
-distance = round(distance,2)
-print('Distance: ', distance, 'cm')
-print('Waiting for sensor 3 to send signal')
-time.sleep(2)
-
-GPIO.output(TRIG2, True)
-time.sleep(0.00001)
-GPIO.output(TRIG2,False)
-
-while GPIO.input(ECHO2)==0:
-    pulse_start = time.time()
-
-while GPIO.input(ECHO2)==1:
-    pulse_end = time.time()
-    
-pulse_duration = pulse_end - pulse_start
-distance = pulse_duration * 17150
-distance = round(distance,2)
-print('Distance: ', distance, 'cm')
-print('Waiting for sensor 3 to send signal')
-time.sleep(2)
-
-GPIO.output(TRIG3, True)
-time.sleep(0.00001)
-GPIO.output(TRIG3,False)
-
-while GPIO.input(ECHO3)==0:
-    pulse_start = time.time()
-
-while GPIO.input(ECHO3)==1:
-    pulse_end = time.time()
-    
-pulse_duration = pulse_end - pulse_start
-distance = pulse_duration * 17150
-distance = round(distance,2)
-print('Distance: ', distance, 'cm')
+distance_4 = ReadUS(TRIG3, ECHO3)
+print('Distance from sensor 4:', distance_4, 'cm')

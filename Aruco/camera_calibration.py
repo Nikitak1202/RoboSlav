@@ -1,104 +1,101 @@
-import cv2 # Import the OpenCV library to enable computer vision
-import numpy as np # Import the NumPy scientific computing library
-import glob # Used to get retrieve files that have a specified pattern
- 
-# Project: Camera Calibration Using Python and OpenCV
-# Date created: 12/19/2021
-# Python version: 3.8
-  
-# Chessboard dimensions
-number_of_squares_X = 10 # Number of chessboard squares along the x-axis
-number_of_squares_Y = 7  # Number of chessboard squares along the y-axis
-nX = number_of_squares_X - 1 # Number of interior corners along x-axis
-nY = number_of_squares_Y - 1 # Number of interior corners along y-axis
-square_size = 0.035 # Size, in meters, of a square side 
-  
-# Set termination criteria. We stop either when an accuracy is reached or when
-# we have finished a certain number of iterations.
-criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001) 
- 
-# Define real world coordinates for points in the 3D coordinate frame
-# Object points are (0,0,0), (1,0,0), (2,0,0) ...., (5,8,0)
-object_points_3D = np.zeros((nX * nY, 3), np.float32)  
-  
-# These are the x and y coordinates                                              
-object_points_3D[:,:2] = np.mgrid[0:nY, 0:nX].T.reshape(-1, 2) 
- 
+import cv2  
+import numpy as np  
+import glob  # Используется для получения файлов с определенным шаблоном
+
+
+# Размеры шахматной доски
+number_of_squares_X = 10  # Количество квадратов шахматной доски по оси X
+number_of_squares_Y = 7   # Количество квадратов шахматной доски по оси Y
+nX = number_of_squares_X - 1  # Количество внутренних углов по оси X
+nY = number_of_squares_Y - 1  # Количество внутренних углов по оси Y
+square_size = 0.035  # Размер стороны квадрата в метрах
+
+# Установка критериев завершения. Процесс завершается при достижении заданной точности
+# или при выполнении определенного количества итераций.
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+
+# Определение координат точек в трехмерной системе координат
+object_points_3D = np.zeros((nX * nY, 3), np.float32)
+
+# Координаты X и Y
+object_points_3D[:, :2] = np.mgrid[0:nY, 0:nX].T.reshape(-1, 2)
+
 object_points_3D = object_points_3D * square_size
- 
-# Store vectors of 3D points for all chessboard images (world coordinate frame)
+
+# Векторы трехмерных точек для всех изображений шахматной доски (в мировой системе координат)
 object_points = []
-  
-# Store vectors of 2D points for all chessboard images (camera coordinate frame)
+
+# Векторы двумерных точек для всех изображений шахматной доски (в системе координат камеры)
 image_points = []
-  
+
+
 def main():
-      
-  # Get the file path for images in the current directory
-  images = glob.glob('*.jpg')
-      
-  # Go through each chessboard image, one by one
-  for image_file in images:
-   
-    # Load the image
-    image = cv2.imread(image_file)  
-  
-    # Convert the image to grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  
-  
-    # Find the corners on the chessboard
-    success, corners = cv2.findChessboardCorners(gray, (nY, nX), None)
-      
-    # If the corners are found by the algorithm, draw them
-    if success == True:
-  
-      # Append object points
-      object_points.append(object_points_3D)
-  
-      # Find more exact corner pixels       
-      corners_2 = cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), criteria)       
-        
-      # Append image points
-      image_points.append(corners_2)
-  
-      # Draw the corners
-      cv2.drawChessboardCorners(image, (nY, nX), corners_2, success)
-  
-      # Display the image. Used for testing.
-      cv2.imshow("Image", image) 
-      
-      # Display the window for a short period. Used for testing.
-      cv2.waitKey(1000) 
-                                                                                                                      
-  # Perform camera calibration to return the camera matrix, distortion coefficients, rotation and translation vectors etc 
-  ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(object_points, 
-                                                    image_points, 
-                                                    gray.shape[::-1], 
-                                                    None, 
-                                                    None)
- 
-  # Save parameters to a file
-  cv_file = cv2.FileStorage('calibration_chessboard.yaml', cv2.FILE_STORAGE_WRITE)
-  cv_file.write('K', mtx)
-  cv_file.write('D', dist)
-  cv_file.release()
-  
-  # Load the parameters from the saved file
-  cv_file = cv2.FileStorage('calibration_chessboard.yaml', cv2.FILE_STORAGE_READ) 
-  mtx = cv_file.getNode('K').mat()
-  dst = cv_file.getNode('D').mat()
-  cv_file.release()
-   
-  # Display key parameter outputs of the camera calibration process
-  print("Camera matrix:") 
-  print(mtx) 
-  
-  print("\n Distortion coefficient:") 
-  print(dist) 
-    
-  # Close all windows
-  cv2.destroyAllWindows() 
-      
+    # Получение пути к файлам изображений в текущем каталоге
+    images = glob.glob('*.jpg')
+
+    # Обработка каждого изображения с шахматной доской поочередно
+    for image_file in images:
+
+        # Загрузка изображения
+        image = cv2.imread(image_file)
+
+        # Преобразование изображения в оттенки серого
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        # Поиск углов на шахматной доске
+        success, corners = cv2.findChessboardCorners(gray, (nY, nX), None)
+
+        # Если углы найдены, рисуем их
+        if success == True:
+
+            # Добавляем трехмерные точки
+            object_points.append(object_points_3D)
+
+            # Находим более точные координаты углов
+            corners_2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
+
+            # Добавляем двумерные точки
+            image_points.append(corners_2)
+
+            # Рисуем углы на изображении
+            cv2.drawChessboardCorners(image, (nY, nX), corners_2, success)
+
+            # Отображаем изображение. Используется для тестирования.
+            cv2.imshow("Image", image)
+
+            # Отображаем изображение на некоторое время. Используется для тестирования.
+            cv2.waitKey(1000)
+
+    # Выполнение калибровки камеры для получения матрицы камеры, коэффициентов искажения и т. д.
+    ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(object_points,
+                                                        image_points,
+                                                        gray.shape[::-1],
+                                                        None,
+                                                        None)
+
+    # Сохранение параметров в файл
+    cv_file = cv2.FileStorage('calibration_chessboard.yaml', cv2.FILE_STORAGE_WRITE)
+    cv_file.write('K', mtx)
+    cv_file.write('D', dist)
+    cv_file.release()
+
+    # Загрузка параметров из сохраненного файла
+    cv_file = cv2.FileStorage('calibration_chessboard.yaml', cv2.FILE_STORAGE_READ)
+    mtx = cv_file.getNode('K').mat()
+    dst = cv_file.getNode('D').mat()
+    cv_file.release()
+
+    # Отображение ключевых параметров калибровки камеры
+    print("Матрица камеры:")
+    print(mtx)
+
+    print("\nКоэффициенты искажения:")
+    print(dist)
+
+    # Закрытие всех окон
+    cv2.destroyAllWindows()
+
+
 if __name__ == '__main__':
-  print(__doc__)
-  main()
+    print(__doc__)
+    main()

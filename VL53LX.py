@@ -1,40 +1,29 @@
 #!/usr/bin/env python
+import VL53L1X  
 
-import time
-import sys
-import signal
+# Функция измерения расстояния
+def ReadIR(IR):
+    distance_cm = IR.get_distance() / 10
+    print("Distance: {}mm".format(distance_cm))
 
-import VL53L1X
+    return distance_cm
 
-tof = VL53L1X.VL53L1X(i2c_bus=1, i2c_address=0x29)
-tof.open()
 
-# Optionally set an explicit timing budget
-# These values are measurement time in microseconds,
-# and inter-measurement time in milliseconds.
-# If you uncomment the line below to set a budget you
-tof.start_ranging(0)
-tof.set_timing(66000, 70)
+# Тестим
+# Создание экземпляра дальномера VL53L1X
+IR = VL53L1X.VL53L1X(i2c_bus=1, i2c_address=0x29)
+IR.open()
 
-tof.start_ranging(1)  # Start ranging
-                      # 0 = Unchanged
-                      # 1 = Short Range
-                      # 2 = Medium Range
-                      # 3 = Long Range
-running = True
+# Время измерения в микросекундах и время между измерениями в миллисекундах.
+IR.start_ranging(0)
+IR.set_timing(66000, 70)
 
-def exit_handler(signal, frame):
-    global running
-    running = False
-    tof.stop_ranging()
-    print()
-    sys.exit(0)
+# Начало измерений
+IR.start_ranging(1)  # Начало измерений
+                      # 0 = Неизменно
+                      # 1 = Короткий диапазон
+                      # 2 = Средний диапазон
+                      # 3 = Длинный диапазон
 
-# Attach a signal handler to catch SIGINT (Ctrl+C) and exit gracefully
-signal.signal(signal.SIGINT, exit_handler)
-
-while running:
-    distance_in_mm = tof.get_distance()
-    print("Distance: {}mm".format(distance_in_mm))
-    time.sleep(0.1)
-    
+dist = ReadIR(IR)
+IR.stop_ranging()

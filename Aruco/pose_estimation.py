@@ -6,10 +6,10 @@ import math
  
 def euler_from_quaternion(x, y, z, w):
     """
-    Convert a quaternion into euler angles (roll, pitch, yaw)
-    roll is rotation around x in radians (counterclockwise)
-    pitch is rotation around y in radians (counterclockwise)
-    yaw is rotation around z in radians (counterclockwise)
+    Преобразует кватернион в углы Эйлера (крен, тангаж, рыскание)
+    Крен - вращение вокруг оси x в радианах (положительный поворот против часовой стрелки)
+    Тангаж - вращение вокруг оси y в радианах (положительный поворот против часовой стрелки)
+    Рыскание - вращение вокруг оси z в радианах (положительный поворот против часовой стрелки)
     """
     t0 = +2.0 * (w * x + y * z)
     t1 = +1.0 - 2.0 * (x * x + y * y)
@@ -24,57 +24,55 @@ def euler_from_quaternion(x, y, z, w):
     t4 = +1.0 - 2.0 * (y * y + z * z)
     yaw_z = math.atan2(t3, t4)
             
-    return roll_x, pitch_y, yaw_z # in radians
+    return roll_x, pitch_y, yaw_z # в радианах
  
 
 def ArucoDetector(frame, aruco_side_length, aruco_dictionary, camera_calibration_parameters_filename): 
     detected = False
     translation_x, translation_z, pitch_y = 0, 0, 0
 
-    # Load the camera parameters from the saved file
+    # Загрузка параметров камеры из файла
     cv_file = cv2.FileStorage(camera_calibration_parameters_filename, cv2.FILE_STORAGE_READ) 
     mtx = cv_file.getNode('K').mat()
     dst = cv_file.getNode('D').mat()
     cv_file.release()
 
-    # Detect ArUco markers in the video frame
+    # Обнаружение маркеров на кадре
     corners, marker_ids, _ = cv2.aruco.detectMarkers(frame, aruco_dictionary, mtx, dst)
              
-    # Check that at least one ArUco marker was detected
+    # Проверка, что хотя бы один маркер был обнаружен
     if marker_ids is not None:
         detected = True
-        # Draw a square around detected markers in the video frame
+        # Отрисовка квадрата вокруг обнаруженных маркеров на кадре
         cv2.aruco.drawDetectedMarkers(frame, corners, marker_ids)
              
-        # Get the rotation and translation vectors
+        # Получение векторов поворота и трансляции
         rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corners, aruco_side_length, mtx, dst)
                  
-        # Print the pose for the ArUco marker
-        # The pose of the marker is with respect to the camera lens frame.
-        # Imagine you are looking through the camera viewfinder, 
-        # the camera lens frame's:
-        # x-axis points to the right
-        # y-axis points straight down towards your toes
-        # z-axis points straight ahead away from your eye, out of the camera
+        # Печать положения маркера относительно камеры
+        # СК камеры: ты - камера и смотришь на мир сквозь объектив :(
+        # x-ось указывает направо
+        # y-ось указывает вниз
+        # z-ось указывает вперед, изображая направление обзора камеры
 
-        # Store the translation (i.e. position) information
+        # Сохранение информации о трансляции (положении)
         translation_x = tvecs[0][0][0]
         translation_y = tvecs[0][0][1]
         translation_z = tvecs[0][0][2]
  
-        # Store the rotation information
+        # Сохранение информации о вращении
         rotation_matrix = np.eye(4)
         rotation_matrix[0:3, 0:3] = cv2.Rodrigues(np.array(rvecs[0][0]))[0]
         r = R.from_matrix(rotation_matrix[0:3, 0:3])
         quat = r.as_quat()     
                  
-        # Quaternion format         
+        # Формат кватерниона         
         rotation_x = quat[0] 
         rotation_y = quat[1] 
         rotation_z = quat[2] 
         rotation_w = quat[3] 
                  
-        # Euler angle format in radians
+        # Углы Эйлера в радианах
         roll_x, pitch_y, yaw_z = euler_from_quaternion(rotation_x,
                                                        rotation_y,
                                                        rotation_z,
@@ -94,6 +92,7 @@ def ArucoDetector(frame, aruco_side_length, aruco_dictionary, camera_calibration
     return detected, translation_x - math.sin(pitch_y), translation_z - math.cos(pitch_y), pitch_y
 
 
+# ТЕСТИМ
 cap = cv2.VideoCapture(1)
 _, frame = cap.read()   
 aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_ARUCO_ORIGINAL)
