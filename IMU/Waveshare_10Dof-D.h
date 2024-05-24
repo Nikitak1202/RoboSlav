@@ -1,425 +1,247 @@
-#include "Waveshare_10Dof-D.h"
+/**
+  ******************************************************************************
+  * @file    Waveshare_10Dof-D.h
+  * @author  Waveshare Team - KK
+  * @version V1.0
+  * @date    Aug-2021
+  * @brief   
+  
+  ******************************************************************************
+  * @attention
+  *
+  * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
+  * WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE
+  * TIME. AS A RESULT, WAVESHARE SHALL NOT BE HELD LIABLE FOR ANY
+  * DIRECT, INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING
+  * FROM THE CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE
+  * CODING INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
+  *
+  * <h2><center>&copy; COPYRIGHT 2018 Waveshare</center></h2>
+  ******************************************************************************
+  */
+#ifndef __Waveshare_10DOF_D_H__
+#define __Waveshare_10DOF_D_H__
+#include <stdio.h>
+#include <unistd.h>
+#include <bcm2835.h>
+#include <string.h>
+#include <stdlib.h>
+#include <linux/i2c-dev.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <math.h>
 
-IMU_ST_SENSOR_DATA gstGyroOffset ={0,0,0};
+typedef uint8_t bool;
+#define true 1
+#define false 0
+/* define ICM-20948 Device I2C address*/
+#define I2C_ADD_ICM20948 0x68
+#define I2C_ADD_ICM20948_AK09916 0x0C
+#define I2C_ADD_ICM20948_AK09916_READ 0x80
+#define I2C_ADD_ICM20948_AK09916_WRITE 0x00
+/* define ICM-20948 Register */
+/* user bank 0 register */
+#define REG_ADD_WIA 0x00
+#define REG_VAL_WIA 0xEA
+#define REG_ADD_USER_CTRL 0x03
+#define REG_VAL_BIT_DMP_EN 0x80
+#define REG_VAL_BIT_FIFO_EN 0x40
+#define REG_VAL_BIT_I2C_MST_EN 0x20
+#define REG_VAL_BIT_I2C_IF_DIS 0x10
+#define REG_VAL_BIT_DMP_RST 0x08
+#define REG_VAL_BIT_DIAMOND_DMP_RST 0x04
+#define REG_ADD_PWR_MIGMT_1 0x06
+#define REG_VAL_ALL_RGE_RESET 0x80
+#define REG_VAL_RUN_MODE 0x01 //Non low-power mode
+#define REG_ADD_LP_CONFIG 0x05
+#define REG_ADD_PWR_MGMT_1 0x06
+#define REG_ADD_PWR_MGMT_2 0x07
+#define REG_ADD_ACCEL_XOUT_H 0x2D
+#define REG_ADD_ACCEL_XOUT_L 0x2E
+#define REG_ADD_ACCEL_YOUT_H 0x2F
+#define REG_ADD_ACCEL_YOUT_L 0x30
+#define REG_ADD_ACCEL_ZOUT_H 0x31
+#define REG_ADD_ACCEL_ZOUT_L 0x32
+#define REG_ADD_GYRO_XOUT_H 0x33
+#define REG_ADD_GYRO_XOUT_L 0x34
+#define REG_ADD_GYRO_YOUT_H 0x35
+#define REG_ADD_GYRO_YOUT_L 0x36
+#define REG_ADD_GYRO_ZOUT_H 0x37
+#define REG_ADD_GYRO_ZOUT_L 0x38
+#define REG_ADD_EXT_SENS_DATA_00 0x3B
+#define REG_ADD_REG_BANK_SEL 0x7F
+#define REG_VAL_REG_BANK_0 0x00
+#define REG_VAL_REG_BANK_1 0x10
+#define REG_VAL_REG_BANK_2 0x20
+#define REG_VAL_REG_BANK_3 0x30
+
+/* user bank 1 register */
+/* user bank 2 register */
+#define REG_ADD_GYRO_SMPLRT_DIV 0x00
+#define REG_ADD_GYRO_CONFIG_1 0x01
+#define REG_VAL_BIT_GYRO_DLPCFG_2 0x10   /* bit[5:3] */
+#define REG_VAL_BIT_GYRO_DLPCFG_4 0x20   /* bit[5:3] */
+#define REG_VAL_BIT_GYRO_DLPCFG_6 0x30   /* bit[5:3] */
+#define REG_VAL_BIT_GYRO_FS_250DPS 0x00  /* bit[2:1] */
+#define REG_VAL_BIT_GYRO_FS_500DPS 0x02  /* bit[2:1] */
+#define REG_VAL_BIT_GYRO_FS_1000DPS 0x04 /* bit[2:1] */
+#define REG_VAL_BIT_GYRO_FS_2000DPS 0x06 /* bit[2:1] */
+#define REG_VAL_BIT_GYRO_DLPF 0x01       /* bit[0]   */
+#define REG_ADD_ACCEL_SMPLRT_DIV_2 0x11
+#define REG_ADD_ACCEL_CONFIG 0x14
+#define REG_VAL_BIT_ACCEL_DLPCFG_2 0x10 /* bit[5:3] */
+#define REG_VAL_BIT_ACCEL_DLPCFG_4 0x20 /* bit[5:3] */
+#define REG_VAL_BIT_ACCEL_DLPCFG_6 0x30 /* bit[5:3] */
+#define REG_VAL_BIT_ACCEL_FS_2g 0x00    /* bit[2:1] */
+#define REG_VAL_BIT_ACCEL_FS_4g 0x02    /* bit[2:1] */
+#define REG_VAL_BIT_ACCEL_FS_8g 0x04    /* bit[2:1] */
+#define REG_VAL_BIT_ACCEL_FS_16g 0x06   /* bit[2:1] */
+#define REG_VAL_BIT_ACCEL_DLPF 0x01     /* bit[0]   */
+
+/* user bank 3 register */
+#define REG_ADD_I2C_SLV0_ADDR 0x03
+#define REG_ADD_I2C_SLV0_REG 0x04
+#define REG_ADD_I2C_SLV0_CTRL 0x05
+#define REG_VAL_BIT_SLV0_EN 0x80
+#define REG_VAL_BIT_MASK_LEN 0x07
+#define REG_ADD_I2C_SLV0_DO 0x06
+#define REG_ADD_I2C_SLV1_ADDR 0x07
+#define REG_ADD_I2C_SLV1_REG 0x08
+#define REG_ADD_I2C_SLV1_CTRL 0x09
+#define REG_ADD_I2C_SLV1_DO 0x0A
+
+/* define ICM-20948 Register  end */
+
+/* define ICM-20948 MAG Register  */
+#define REG_ADD_MAG_WIA1 0x00
+#define REG_VAL_MAG_WIA1 0x48
+#define REG_ADD_MAG_WIA2 0x01
+#define REG_VAL_MAG_WIA2 0x09
+#define REG_ADD_MAG_ST2 0x10
+#define REG_ADD_MAG_DATA 0x11
+#define REG_ADD_MAG_CNTL2 0x31
+#define REG_VAL_MAG_MODE_PD 0x00
+#define REG_VAL_MAG_MODE_SM 0x01
+#define REG_VAL_MAG_MODE_10HZ 0x02
+#define REG_VAL_MAG_MODE_20HZ 0x04
+#define REG_VAL_MAG_MODE_50HZ 0x05
+#define REG_VAL_MAG_MODE_100HZ 0x08
+#define REG_VAL_MAG_MODE_ST 0x10
+/* define ICM-20948 MAG Register  end */
+
+#define MAG_DATA_LEN 6
+
+/* 
+ *  BMP280 I2c address
+ */
+#define BMP280_AD0_LOW 0x76         //address pin low (GND)
+#define BMP280_AD0_HIGH 0x77        //address pin high (VCC)
+#define BMP280_ADDR BMP280_AD0_HIGH // default I2C address
+/* 
+ *  BMP280 register address
+ */
+#define BMP280_REGISTER_DIG_T1 0x88
+#define BMP280_REGISTER_DIG_T2 0x8A
+#define BMP280_REGISTER_DIG_T3 0x8C
+
+#define BMP280_REGISTER_DIG_P1 0x8E
+#define BMP280_REGISTER_DIG_P2 0x90
+#define BMP280_REGISTER_DIG_P3 0x92
+#define BMP280_REGISTER_DIG_P4 0x94
+#define BMP280_REGISTER_DIG_P5 0x96
+#define BMP280_REGISTER_DIG_P6 0x98
+#define BMP280_REGISTER_DIG_P7 0x9A
+#define BMP280_REGISTER_DIG_P8 0x9C
+#define BMP280_REGISTER_DIG_P9 0x9E
+
+#define BMP280_REGISTER_CHIPID 0xD0
+#define BMP280_REGISTER_VERSION 0xD1
+#define BMP280_REGISTER_SOFTRESET 0xE0
+#define BMP280_REGISTER_STATUS 0xF3
+#define BMP280_REGISTER_CONTROL 0xF4
+#define BMP280_REGISTER_CONFIG 0xF5
+
+#define BMP280_TEMP_XLSB_REG 0xFC  /*Temperature XLSB Register */
+#define BMP280_TEMP_LSB_REG 0xFB   /*Temperature LSB Register  */
+#define BMP280_TEMP_MSB_REG 0xFA   /*Temperature LSB Register  */
+#define BMP280_PRESS_XLSB_REG 0xF9 /*Pressure XLSB  Register   */
+#define BMP280_PRESS_LSB_REG 0xF8  /*Pressure LSB Register     */
+#define BMP280_PRESS_MSB_REG 0xF7  /*Pressure MSB Register     */
+
+/*calibration parameters */
+#define BMP280_DIG_T1_LSB_REG 0x88
+#define BMP280_DIG_T1_MSB_REG 0x89
+#define BMP280_DIG_T2_LSB_REG 0x8A
+#define BMP280_DIG_T2_MSB_REG 0x8B
+#define BMP280_DIG_T3_LSB_REG 0x8C
+#define BMP280_DIG_T3_MSB_REG 0x8D
+#define BMP280_DIG_P1_LSB_REG 0x8E
+#define BMP280_DIG_P1_MSB_REG 0x8F
+#define BMP280_DIG_P2_LSB_REG 0x90
+#define BMP280_DIG_P2_MSB_REG 0x91
+#define BMP280_DIG_P3_LSB_REG 0x92
+#define BMP280_DIG_P3_MSB_REG 0x93
+#define BMP280_DIG_P4_LSB_REG 0x94
+#define BMP280_DIG_P4_MSB_REG 0x95
+#define BMP280_DIG_P5_LSB_REG 0x96
+#define BMP280_DIG_P5_MSB_REG 0x97
+#define BMP280_DIG_P6_LSB_REG 0x98
+#define BMP280_DIG_P6_MSB_REG 0x99
+#define BMP280_DIG_P7_LSB_REG 0x9A
+#define BMP280_DIG_P7_MSB_REG 0x9B
+#define BMP280_DIG_P8_LSB_REG 0x9C
+#define BMP280_DIG_P8_MSB_REG 0x9D
+#define BMP280_DIG_P9_LSB_REG 0x9E
+#define BMP280_DIG_P9_MSB_REG 0x9F
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-void imuAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz);
-float invSqrt(float x);
-
-void icm20948init(void);
-bool icm20948Check(void);
-void icm20948GyroRead(int16_t* ps16X, int16_t* ps16Y, int16_t* ps16Z);
-void icm20948AccelRead(int16_t* ps16X, int16_t* ps16Y, int16_t* ps16Z);
-void icm20948MagRead(int16_t* ps16X, int16_t* ps16Y, int16_t* ps16Z);
-bool icm20948MagCheck(void);
-void icm20948CalAvgValue(uint8_t *pIndex, int16_t *pAvgBuffer, int16_t InVal, int32_t *pOutVal);
-void icm20948GyroOffset(void);
-void icm20948ReadSecondary(uint8_t u8I2CAddr, uint8_t u8RegAddr, uint8_t u8Len, uint8_t *pu8data);
-void icm20948WriteSecondary(uint8_t u8I2CAddr, uint8_t u8RegAddr, uint8_t u8data);
-
-bool bmp280Check(void);
-void bmp280Init(void);
-
-#define IIC_Dev  "/dev/i2c-1"
-
-int fd;
-
-void i2cInit(void)
-{
-  if ((fd = open(IIC_Dev, O_RDWR)) < 0)
+  typedef enum
   {
-    printf("Failed to open the i2c bus.\n");
-  }
-  else
+    IMU_EN_SENSOR_TYPE_NULL = 0,
+    IMU_EN_SENSOR_TYPE_ICM20948,
+    IMU_EN_SENSOR_TYPE_BMP280,
+    IMU_EN_SENSOR_TYPE_MAX
+  } IMU_EN_SENSOR_TYPE;
+
+  typedef struct imu_st_angles_data_tag
   {
-    printf("I2C bus opened successfully.\n");
-  }
-  return;
-}
+    float fYaw;
+    float fPitch;
+    float fRoll;
+  } IMU_ST_ANGLES_DATA;
 
-uint8_t I2C_ReadOneByte(uint8_t DevAddr, uint8_t RegAddr)
-{
-  uint8_t u8Ret;
-  if (ioctl(fd, I2C_SLAVE, DevAddr) < 0)
+  typedef struct imu_st_sensor_data_tag
   {
-    printf("Failed to acquire bus access and/or talk to slave. DevAddr: 0x%02X\n", DevAddr);
-    return 0;
-  }
-  write(fd, &RegAddr, 1);
-  read(fd, &u8Ret, 1);
-  return u8Ret;
-}
+    int16_t s16X;
+    int16_t s16Y;
+    int16_t s16Z;
+  } IMU_ST_SENSOR_DATA;
 
-void I2C_WriteOneByte(uint8_t DevAddr, uint8_t RegAddr, uint8_t value)
-{
-  int8_t *buf;
-
-  if (ioctl(fd, I2C_SLAVE, DevAddr) < 0)
+  typedef struct icm20948_st_avg_data_tag
   {
-    printf("Failed to acquire bus access and/or talk to slave. DevAddr: 0x%02X\n", DevAddr);
-    return;
-  }
-  buf = malloc(2);
-  buf[0] = RegAddr;
-  buf[1] = value;
-  write(fd, buf, 2);
-  free(buf);
-  return;
-}
+    uint8_t u8Index;
+    int16_t s16AvgBuffer[8];
+  } ICM20948_ST_AVG_DATA;
 
-#define Kp 4.50f
-#define Ki 1.0f
+  void imuInit(IMU_EN_SENSOR_TYPE *penMotionSensorType, IMU_EN_SENSOR_TYPE *penPressureType);
+  void imuDataGet(IMU_ST_ANGLES_DATA *pstAngles,
+                  IMU_ST_SENSOR_DATA *pstGyroRawData,
+                  IMU_ST_SENSOR_DATA *pstAccelRawData,
+                  IMU_ST_SENSOR_DATA *pstMagnRawData);
+  void pressSensorDataGet(int32_t *ps32Temperature, int32_t *ps32Pressure, int32_t *ps32Altitude);
 
-float angles[3];
-float q0, q1, q2, q3; 
-
-void imuInit(IMU_EN_SENSOR_TYPE *penMotionSensorType, IMU_EN_SENSOR_TYPE *penPressureType)
-{
-  bool bRet = false;
-  
-  i2cInit();
-  bRet = icm20948Check();
-  if (bRet == true)
-  {
-    printf("ICM20948 detected.\n");
-    *penMotionSensorType = IMU_EN_SENSOR_TYPE_ICM20948;
-    icm20948init();
-  }
-  else
-  {
-    printf("ICM20948 not detected. Address: 0x%02X\n", I2C_ADD_ICM20948);
-    *penMotionSensorType = IMU_EN_SENSOR_TYPE_NULL;
-  }
-  
-  bRet = bmp280Check();
-  if (bRet == true)
-  {
-    printf("BMP280 detected.\n");
-    *penPressureType = IMU_EN_SENSOR_TYPE_BMP280;
-    bmp280Init();
-  }
-  else
-  {
-    printf("BMP280 not detected.\n");
-    *penPressureType = IMU_EN_SENSOR_TYPE_NULL;
-  }
-
-  q0 = 1.0f;  
-  q1 = 0.0f;
-  q2 = 0.0f;
-  q3 = 0.0f;
-
-  return;
-}
-
-bool icm20948Check(void)
-{
-  bool bRet = false;
-  uint8_t who_am_i = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_WIA);
-  printf("ICM20948 WHO_AM_I register: 0x%02X\n", who_am_i);
-  if (who_am_i == REG_VAL_WIA)
-  {
-    bRet = true;
-  }
-  return bRet;
-}
-
-void icm20948init(void)
-{
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_REG_BANK_SEL, REG_VAL_REG_BANK_0);
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_PWR_MIGMT_1, REG_VAL_ALL_RGE_RESET);
-  delay(10);
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_PWR_MIGMT_1, REG_VAL_RUN_MODE);
-
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_REG_BANK_SEL, REG_VAL_REG_BANK_2);
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_GYRO_SMPLRT_DIV, 0x07);
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_GYRO_CONFIG_1, REG_VAL_BIT_GYRO_DLPCFG_6 | REG_VAL_BIT_GYRO_FS_1000DPS | REG_VAL_BIT_GYRO_DLPF);
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_ACCEL_SMPLRT_DIV_2, 0x07);
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_ACCEL_CONFIG, REG_VAL_BIT_ACCEL_DLPCFG_6 | REG_VAL_BIT_ACCEL_FS_2g);
-
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_REG_BANK_SEL, REG_VAL_REG_BANK_0);
-  delay(100);
-  icm20948GyroOffset();
-  icm20948MagCheck();
-  icm20948WriteSecondary(I2C_ADD_ICM20948_AK09916 | I2C_ADD_ICM20948_AK09916_WRITE, REG_ADD_MAG_CNTL2, REG_VAL_MAG_MODE_20HZ);
-  return;
-}
-
-void icm20948GyroRead(int16_t* ps16X, int16_t* ps16Y, int16_t* ps16Z)
-{
-  uint8_t u8Buf[6];
-  int16_t s16Buf[3] = {0}; 
-  uint8_t i;
-  int32_t s32OutBuf[3] = {0};
-  static ICM20948_ST_AVG_DATA sstAvgBuf[3];
-  static int16_t ss16c = 0;
-  ss16c++;
-
-  u8Buf[0] = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_GYRO_XOUT_L); 
-  u8Buf[1] = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_GYRO_XOUT_H);
-  s16Buf[0] = (u8Buf[1] << 8) | u8Buf[0];
-
-  u8Buf[0] = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_GYRO_YOUT_L); 
-  u8Buf[1] = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_GYRO_YOUT_H);
-  s16Buf[1] = (u8Buf[1] << 8) | u8Buf[0];
-
-  u8Buf[0] = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_GYRO_ZOUT_L); 
-  u8Buf[1] = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_GYRO_ZOUT_H);
-  s16Buf[2] = (u8Buf[1] << 8) | u8Buf[0];
-
-  for (i = 0; i < 3; i++) 
-  {
-    icm20948CalAvgValue(&sstAvgBuf[i].u8Index, sstAvgBuf[i].s16AvgBuffer, s16Buf[i], s32OutBuf + i);
-  }
-  *ps16X = s32OutBuf[0] - gstGyroOffset.s16X;
-  *ps16Y = s32OutBuf[1] - gstGyroOffset.s16Y;
-  *ps16Z = s32OutBuf[2] - gstGyroOffset.s16Z;
-
-  return;
-}
-
-void icm20948AccelRead(int16_t* ps16X, int16_t* ps16Y, int16_t* ps16Z)
-{
-  uint8_t u8Buf[2];
-  int16_t s16Buf[3] = {0}; 
-  uint8_t i;
-  int32_t s32OutBuf[3] = {0};
-  static ICM20948_ST_AVG_DATA sstAvgBuf[3];
-
-  u8Buf[0] = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_ACCEL_XOUT_L); 
-  u8Buf[1] = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_ACCEL_XOUT_H);
-  s16Buf[0] = (u8Buf[1] << 8) | u8Buf[0];
-
-  u8Buf[0] = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_ACCEL_YOUT_L); 
-  u8Buf[1] = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_ACCEL_YOUT_H);
-  s16Buf[1] = (u8Buf[1] << 8) | u8Buf[0];
-
-  u8Buf[0] = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_ACCEL_ZOUT_L); 
-  u8Buf[1] = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_ACCEL_ZOUT_H);
-  s16Buf[2] = (u8Buf[1] << 8) | u8Buf[0];
-
-  for (i = 0; i < 3; i++) 
-  {
-    icm20948CalAvgValue(&sstAvgBuf[i].u8Index, sstAvgBuf[i].s16AvgBuffer, s16Buf[i], s32OutBuf + i);
-  }
-  *ps16X = s32OutBuf[0];
-  *ps16Y = s32OutBuf[1];
-  *ps16Z = s32OutBuf[2];
-
-  return;
-}
-
-void icm20948MagRead(int16_t* ps16X, int16_t* ps16Y, int16_t* ps16Z)
-{
-  uint8_t counter = 20;
-  uint8_t u8Data[MAG_DATA_LEN];
-  int16_t s16Buf[3] = {0}; 
-  uint8_t i;
-  int32_t s32OutBuf[3] = {0};
-  static ICM20948_ST_AVG_DATA sstAvgBuf[3];
-  while (counter > 0)
-  {
-    delay(10);
-    icm20948ReadSecondary(I2C_ADD_ICM20948_AK09916 | I2C_ADD_ICM20948_AK09916_READ, REG_ADD_MAG_ST2, 1, u8Data);
-    
-    if ((u8Data[0] & 0x01) != 0)
-      break;
-    
-    counter--;
-  }
-  
-  if (counter != 0)
-  {
-    icm20948ReadSecondary(I2C_ADD_ICM20948_AK09916 | I2C_ADD_ICM20948_AK09916_READ, REG_ADD_MAG_DATA, MAG_DATA_LEN, u8Data);
-    s16Buf[0] = ((int16_t)u8Data[1] << 8) | u8Data[0];
-    s16Buf[1] = ((int16_t)u8Data[3] << 8) | u8Data[2];
-    s16Buf[2] = ((int16_t)u8Data[5] << 8) | u8Data[4];
-  }
-
-  for (i = 0; i < 3; i++) 
-  {
-    icm20948CalAvgValue(&sstAvgBuf[i].u8Index, sstAvgBuf[i].s16AvgBuffer, s16Buf[i], s32OutBuf + i);
-  }
-  
-  *ps16X = s32OutBuf[0];
-  *ps16Y = -s32OutBuf[1];
-  *ps16Z = -s32OutBuf[2];
-  return;
-}
-
-void icm20948ReadSecondary(uint8_t u8I2CAddr, uint8_t u8RegAddr, uint8_t u8Len, uint8_t *pu8data)
-{
-  uint8_t i;
-  uint8_t u8Temp;
-
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_REG_BANK_SEL, REG_VAL_REG_BANK_3);
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_I2C_SLV0_ADDR, u8I2CAddr);
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_I2C_SLV0_REG, u8RegAddr);
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_I2C_SLV0_CTRL, REG_VAL_BIT_SLV0_EN | u8Len);
-
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_REG_BANK_SEL, REG_VAL_REG_BANK_0);
-  
-  u8Temp = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_USER_CTRL);
-  u8Temp |= REG_VAL_BIT_I2C_MST_EN;
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_USER_CTRL, u8Temp);
-  delay(5);
-  u8Temp &= ~REG_VAL_BIT_I2C_MST_EN;
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_USER_CTRL, u8Temp);
-  
-  for (i = 0; i < u8Len; i++)
-  {
-    *(pu8data + i) = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_EXT_SENS_DATA_00 + i);
-  }
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_REG_BANK_SEL, REG_VAL_REG_BANK_3);
-  
-  u8Temp = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_I2C_SLV0_CTRL);
-  u8Temp &= ~((REG_VAL_BIT_I2C_MST_EN) & (REG_VAL_BIT_MASK_LEN));
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_I2C_SLV0_CTRL, u8Temp);
-  
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_REG_BANK_SEL, REG_VAL_REG_BANK_0);
-}
-
-void icm20948WriteSecondary(uint8_t u8I2CAddr, uint8_t u8RegAddr, uint8_t u8data)
-{
-  uint8_t u8Temp;
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_REG_BANK_SEL, REG_VAL_REG_BANK_3);
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_I2C_SLV1_ADDR, u8I2CAddr);
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_I2C_SLV1_REG, u8RegAddr);
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_I2C_SLV1_DO, u8data);
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_I2C_SLV1_CTRL, REG_VAL_BIT_SLV0_EN | 1);
-
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_REG_BANK_SEL, REG_VAL_REG_BANK_0);
-
-  u8Temp = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_USER_CTRL);
-  u8Temp |= REG_VAL_BIT_I2C_MST_EN;
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_USER_CTRL, u8Temp);
-  delay(5);
-  u8Temp &= ~REG_VAL_BIT_I2C_MST_EN;
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_USER_CTRL, u8Temp);
-
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_REG_BANK_SEL, REG_VAL_REG_BANK_3);
-
-  u8Temp = I2C_ReadOneByte(I2C_ADD_ICM20948, REG_ADD_I2C_SLV0_CTRL);
-  u8Temp &= ~((REG_VAL_BIT_I2C_MST_EN) & (REG_VAL_BIT_MASK_LEN));
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_I2C_SLV0_CTRL, u8Temp);
-
-  I2C_WriteOneByte(I2C_ADD_ICM20948, REG_ADD_REG_BANK_SEL, REG_VAL_REG_BANK_0);
-  return;
-}
-
-void icm20948CalAvgValue(uint8_t *pIndex, int16_t *pAvgBuffer, int16_t InVal, int32_t *pOutVal)
-{ 
-  uint8_t i;
-  
-  *(pAvgBuffer + ((*pIndex)++)) = InVal;
-  *pIndex &= 0x07;
-  
-  *pOutVal = 0;
-  for (i = 0; i < 8; i++) 
-  {
-    *pOutVal += *(pAvgBuffer + i);
-  }
-  *pOutVal >>= 3;
-}
-
-void icm20948GyroOffset(void)
-{
-  uint8_t i;
-  int16_t s16Gx = 0, s16Gy = 0, s16Gz = 0;
-  int32_t s32TempGx = 0, s32TempGy = 0, s32TempGz = 0;
-  for (i = 0; i < 32; i++)
-  {
-    icm20948GyroRead(&s16Gx, &s16Gy, &s16Gz);
-    s32TempGx += s16Gx;
-    s32TempGy += s16Gy;
-    s32TempGz += s16Gz;
-    delay(10);
-  }
-  gstGyroOffset.s16X = s32TempGx >> 5;
-  gstGyroOffset.s16Y = s32TempGy >> 5;
-  gstGyroOffset.s16Z = s32TempGz >> 5;
-  return;
-}
-
-bool icm20948MagCheck(void)
-{
-  bool bRet = false;
-  uint8_t u8Ret[2];
-  
-  icm20948ReadSecondary(I2C_ADD_ICM20948_AK09916 | I2C_ADD_ICM20948_AK09916_READ, REG_ADD_MAG_WIA1, 2, u8Ret);
-  if ((u8Ret[0] == REG_VAL_MAG_WIA1) && (u8Ret[1] == REG_VAL_MAG_WIA2))
-  {
-    bRet = true;
-  }
-  
-  return bRet;
-}
-
-bool bmp280Check(void)
-{
-    bool bRet = false;
-    if (0x58 == I2C_ReadOneByte(BMP280_ADDR, BMP280_REGISTER_CHIPID))
-    {
-        bRet = true;
-    }
-    return bRet;
-}
-
-void bmp280Init(void)
-{
-  I2C_WriteOneByte(BMP280_ADDR, BMP280_REGISTER_CONTROL, 0xFF);
-  I2C_WriteOneByte(BMP280_ADDR, BMP280_REGISTER_CONFIG, 0x14);
-  bmp280ReadCalibration();
-}
-
-void bmp280ReadCalibration(void)
-{
-  uint8_t lsb, msb; 
-  
-  /* read the temperature calibration parameters */  
-  lsb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_T1_LSB_REG);
-  msb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_T1_MSB_REG);
-  bmp280.T1 = msb << 8 | lsb;
-  lsb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_T2_LSB_REG);
-  msb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_T2_MSB_REG);
-  bmp280.T2 = msb << 8 | lsb;  
-  lsb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_T3_LSB_REG);
-  msb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_T3_MSB_REG);
-  bmp280.T3 = msb << 8 | lsb;  
-  
-  /* read the pressure calibration parameters */  
-  lsb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P1_LSB_REG);
-  msb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P1_MSB_REG);    
-  bmp280.P1 = msb << 8 | lsb;  
-  lsb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P2_LSB_REG);
-  msb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P2_MSB_REG);      
-  bmp280.P2 = msb << 8 | lsb;  
-  lsb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P3_LSB_REG);
-  msb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P3_MSB_REG);  
-  bmp280.P3 = msb << 8 | lsb;  
-  lsb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P4_LSB_REG);
-  msb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P4_MSB_REG);         
-  bmp280.P4 = msb << 8 | lsb;    
-  lsb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P5_LSB_REG);
-  msb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P5_MSB_REG);           
-  bmp280.P5 = msb << 8 | lsb;  
-  lsb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P6_LSB_REG);
-  msb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P6_MSB_REG);          
-  bmp280.P6 = msb << 8 | lsb;  
-  lsb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P7_LSB_REG);
-  msb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P7_MSB_REG);           
-  bmp280.P7 = msb << 8 | lsb;  
-  lsb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P8_LSB_REG);
-  msb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P8_MSB_REG);         
-  bmp280.P8 = msb << 8 | lsb;  
-  lsb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P9_LSB_REG);
-  msb = I2C_ReadOneByte(BMP280_ADDR, BMP280_DIG_P9_MSB_REG);            
-  bmp280.P9 = msb << 8 | lsb; 
-}
+  uint8_t I2C_ReadOneByte(uint8_t DevAddr, uint8_t RegAddr);
+  void I2C_WriteOneByte(uint8_t DevAddr, uint8_t RegAddr, uint8_t value);
 
 #ifdef __cplusplus
 }
 #endif
+
+#endif //__Waveshare_10DOF_D_H__
