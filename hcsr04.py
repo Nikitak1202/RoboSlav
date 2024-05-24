@@ -38,11 +38,11 @@ ECHO0 = 12
 TRIG1 = 24
 ECHO1 = 16
 
-TRIG2 = 25
-ECHO2 = 20
+#TRIG2 = 25
+#ECHO2 = 20
 
-TRIG3 = 8
-ECHO3 = 21
+#TRIG3 = 8
+#ECHO3 = 21
 
 # Настройка пинов GPIO как входов и выходов
 GPIO.setup(TRIG0, GPIO.OUT)
@@ -51,17 +51,17 @@ GPIO.setup(ECHO0, GPIO.IN)
 GPIO.setup(TRIG1, GPIO.OUT)
 GPIO.setup(ECHO1, GPIO.IN)
 
-GPIO.setup(TRIG2, GPIO.OUT)
-GPIO.setup(ECHO2, GPIO.IN)
+#GPIO.setup(TRIG2, GPIO.OUT)
+#GPIO.setup(ECHO2, GPIO.IN)
 
-GPIO.setup(TRIG3, GPIO.OUT)
-GPIO.setup(ECHO3, GPIO.IN)
+#GPIO.setup(TRIG3, GPIO.OUT)
+#GPIO.setup(ECHO3, GPIO.IN)
 
 # Установка всех пинов TRIG в низкий уровень
 GPIO.output(TRIG0, False)
 GPIO.output(TRIG1, False)
-GPIO.output(TRIG2, False)
-GPIO.output(TRIG3, False)
+#GPIO.output(TRIG2, False)
+#GPIO.output(TRIG3, False)
 
 # Измерение расстояния для каждого датчика
 distance_1 = ReadUS(TRIG0, ECHO0)
@@ -70,8 +70,8 @@ print('Distance from sensor 1:', distance_1, 'cm')
 distance_2 = ReadUS(TRIG1, ECHO1)
 print('Distance from sensor 2:', distance_2, 'cm')
 
-distance_3 = ReadUS(TRIG2, ECHO2)
-print('Distance from sensor 3:', distance_3, 'cm')
+#distance_3 = ReadUS(TRIG2, ECHO2)
+#print('Distance from sensor 3:', distance_3, 'cm')
 
-distance_4 = ReadUS(TRIG3, ECHO3)
-print('Distance from sensor 4:', distance_4, 'cm')
+#distance_4 = ReadUS(TRIG3, ECHO3)
+#print('Distance from sensor 4:', distance_4, 'cm')

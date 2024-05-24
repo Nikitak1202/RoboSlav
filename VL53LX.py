@@ -4,7 +4,7 @@ import VL53L1X
 # Функция измерения расстояния
 def ReadIR(IR):
     distance_cm = IR.get_distance() / 10
-    print("Distance: {}mm".format(distance_cm))
+    print("Distance: {}сm".format(distance_cm))
 
     return distance_cm
 

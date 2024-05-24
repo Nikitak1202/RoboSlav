@@ -1,80 +1,87 @@
-#!/usr/bin/env python
+
 import serial
 
+SERIAL_PORT = "/dev/serial0"
+running = True
 
-# Функция для преобразования координат в формат DD.MMMM
+# In the NMEA message, the position gets transmitted as:
+# DDMM.MMMMM, where DD denotes the degrees and MM.MMMMM denotes the minutes
+# DD.MMMM. This method converts a transmitted string to the desired format
 def formatDegreesMinutes(coordinates, digits):
-    # Разбиваем координаты на градусы и минуты
-    parts = coordinates.split(".")
+	parts = coordinates.split(".")
 
-    # Проверяем корректность формата координат
-    if (len(parts) != 2):
-        return coordinates
-    # Проверяем, что значение digits находится в допустимом диапазоне
-    if (digits > 3 or digits < 2):
-        return coordinates
+	if (len(parts) != 2):
+		return coordinates
+	if (digits > 3 or digits < 2):
+        	return coordinates
     
-    # Получаем градусы и минуты
-    left = parts[0]
-    right = parts[1]
-    degrees = str(left[:digits])
-    minutes = str(right[:3])
+	left = parts[0]
+	right = parts[1]
+	degrees = str(left[:digits])
+	minutes = str(right[:3])
+	return degrees + "." + minutes
 
-    # Возвращаем преобразованные координаты
-    return degrees + "." + minutes
+def parse_nmea(data):
+    if not data.startswith(b'$'):
+        return "Not a valid NMEA sentence"
 
+    try:
+        fields = data.decode('ascii').strip().split(',')
+        sentence_type = fields[0][3:6]
 
-# Функция для чтения данных GPS и вывода координат
-def getPositionData(gps):
-    # Читаем данные с последовательного порта
-    data = gps.readline()
-    # Извлекаем тип сообщения
-    message = data[0:6]
+        if sentence_type == "GGA":
+            time = fields[1]
+            latitude = fields[2] + " " + fields[3] if fields[2] else "No fix"
+            longitude = fields[4] + " " + fields[5] if fields[4] else "No fix"
+            fix_quality = fields[6]
+            return {
+                "type": "GGA",
+                "time": time[:2] + ":" + time[2:4] + ":" + time[4:],
+                "latitude": latitude,
+                "longitude": longitude,
+                "fix_quality": fix_quality
+            }
 
-    if (message == "$GPRMC"):
-        # GPRMC - рекомендуемые минимальные данные GPS/Транзита
-        # Проверяем наличие фиксации GPS
-        parts = data.split(",")
-
-        if parts[2] == 'V':
-            print("Предупреждение: GPS-приемник не зафиксировал спутники")
-            
-            return 0
+        elif sentence_type == "RMC":
+            time = fields[1]
+            status = fields[2]
+            date = fields[9]
+            if status != 'A':
+                return f"RMC sentence indicates no valid fix: Status {status}"
+            return {
+                "type": "RMC",
+                "time": time[:2] + ":" + time[2:4] + ":" + time[4:],
+                "status": status,
+                "date": "20" + date[4:] + "-" + date[2:4] + "-" + date[:2]
+            }
 
         else:
-            # Извлекаем координаты из сообщения GPRMC
-            longitude = formatDegreesMinutes(parts[5], 3)
-            latitude = formatDegreesMinutes(parts[3], 2)
-            print("Ваше местоположение: долгота = " + str(longitude) + ", широта = " + str(latitude))
+            return "Unsupported NMEA type"
 
-            return longitude, latitude
+    except (IndexError, ValueError) as e:
+        return f"Error parsing NMEA data: {e}"
 
-    else:
-        # Обработка других сообщений NMEA и неподдерживаемых строк
-        pass
+# Additional logic could be added to recheck for data if no valid fix is obtained
+# This method reads the data from the serial port, the GPS dongle is attached to, and then parses the NMEA messages it 
+# transmits. gps is the serial port, that's used to communicate with the GPS adapter
+def getPositionData(gps):
+	data = gps.readline()
+	message = data[0:6]
+	print(parse_nmea(data))
+        # GPRMC = Recommended minimum specific GPS/Transit data
+        # Reading the GPS fix data is an alternative approach that also works
+	#longitude = formatDegreesMinutes(parts[5], 3)
+	#latitude = formatDegreesMinutes(parts[3], 2)
+	#print("Your position: lon = " + str(longitude) + ", lat = " + str(latitude))
 
-    return 0
+        # Handle other NMEA messages and unsupp
+print("Application started!")
+gps = serial.Serial(SERIAL_PORT, baudrate = 9600, timeout = 1)
 
-
-# ТЕСТИМ
-# Порт, к которому подключено GPS-устройство
-SERIAL_PORT = "/dev/serial0"
-# Открываем последовательный порт для связи с GPS-устройством
-gps = serial.Serial(SERIAL_PORT, baudrate = 9600, timeout = 0.5)
-
-running = True # Флаг, определяющий работу программы
 while running:
-    try:
-        # Получаем и выводим координаты
-        longitude, latitude = getPositionData(gps)
-
-    except KeyboardInterrupt:
-        # Обработка прерывания пользователем (Ctrl+C)
-        running = False
-        # Закрываем соединение с последовательным портом
-        gps.close()
-        print("Приложение закрыто!")
-        
-    except:
-        # Обработка других ошибок
-        print("Ошибка в приложении!")
+	try:
+		getPositionData(gps)
+	except KeyboardInterrupt:
+		running = False
+		gps.close()
+		print("Application closed!")
